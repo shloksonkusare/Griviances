@@ -1,0 +1,95 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build outputs
+dataset/
+dist/
+build/
+venv/
+__pycache__/
+*.local
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Uploads directory (keep structure but ignore files)
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Debug
+.debug/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache
+.npm/
+
+# Optional eslint cache
+.eslintcache
+
+# Vite
+*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Package lock files (optional - uncomment if you want to ignore)
+# package-lock.json
+# yarn.lock
+
+# Test files
+*.test.js.snap
+__snapshots__/
+
+# MongoDB data (if local)
+data/db/
