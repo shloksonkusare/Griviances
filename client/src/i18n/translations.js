@@ -161,11 +161,6 @@ const resources = {
       quick_tracking_qr: 'Quick Tracking QR Code',
       scan_qr_to_track: 'Scan this QR code anytime to check status',
       save_qr: 'Save QR',
-      what_happens_next: 'What happens next?',
-      next_step_1: 'Your complaint will be reviewed by the relevant department',
-      next_step_2: 'You will receive WhatsApp updates on status changes',
-      next_step_3: 'Track status anytime using your Complaint ID',
-      track_complaint_status: 'Track Complaint Status',
       submit_another_complaint: 'Submit Another Complaint',
       
       // Tracking Page
@@ -328,7 +323,6 @@ const resources = {
       // Success
       complaint_submitted_success: 'शिकायत जमा हो गई!',
       your_complaint_id: 'आपका शिकायत आईडी',
-      track_complaint_status: 'शिकायत स्थिति ट्रैक करें',
       submit_another_complaint: 'एक और शिकायत जमा करें',
       
       // Tracking

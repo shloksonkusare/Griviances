@@ -2,23 +2,25 @@ import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { 
   CheckCircleIcon, 
   DocumentDuplicateIcon,
   ShareIcon,
-  ArrowDownTrayIcon 
+  ArrowDownTrayIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline';
 
 export default function ComplaintSuccess({ 
   complaintId, 
   trackingUrl,
   estimatedTime,
-  onTrackStatus,
   onNewComplaint,
   onShare
 }) {
   const { t } = useTranslation();
   const qrRef = useRef(null);
+  const navigate = useNavigate();
 
   const copyToClipboard = async () => {
     try {
@@ -189,51 +191,25 @@ export default function ComplaintSuccess({
         </div>
       </motion.div>
 
-      {/* Info Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-blue-50 rounded-xl p-4 mb-6"
-      >
-        <h4 className="font-medium text-blue-900 text-sm mb-2">
-          {t('what_happens_next')}
-        </h4>
-        <ul className="space-y-2 text-sm text-blue-800">
-          <li className="flex items-start gap-2">
-            <span className="w-5 h-5 bg-blue-200 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">1</span>
-            <span>{t('next_step_1')}</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="w-5 h-5 bg-blue-200 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">2</span>
-            <span>{t('next_step_2')}</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="w-5 h-5 bg-blue-200 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">3</span>
-            <span>{t('next_step_3')}</span>
-          </li>
-        </ul>
-      </motion.div>
-
       {/* Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
+        transition={{ delay: 0.6 }}
         className="space-y-3"
       >
-        <button
-          onClick={onTrackStatus}
-          className="w-full py-4 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition"
-        >
-          {t('track_complaint_status')}
-        </button>
-        
         <button
           onClick={onNewComplaint}
           className="w-full py-3 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition"
         >
           {t('submit_another_complaint')}
+        </button>
+        <button
+          onClick={() => navigate('/')}
+          className="w-full py-3 flex items-center justify-center gap-2 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition"
+        >
+          <HomeIcon className="w-5 h-5" />
+          {t('go_to_home', 'Go to Home')}
         </button>
       </motion.div>
     </motion.div>

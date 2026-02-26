@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
@@ -9,65 +9,72 @@ export default function QRCodeScanner({ onScan, onClose, onError }) {
   const [isScanning, setIsScanning] = useState(true);
   const [error, setError] = useState(null);
   const [uploadFile, setUploadFile] = useState(null);
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!isScanning) return;
+    let isCancelled = false;
 
-    const scanner = new Html5QrcodeScanner(
-      'qr-scanner',
-      {
-        fps: 30,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        showTorchButtonIfSupported: true,
-      },
-      false
-    );
-
-    scannerRef.current = scanner;
-
-    const onScanSuccess = (decodedText) => {
-      setIsScanning(false);
-      
-      // Extract complaint ID from URL or direct text
-      let complaintId;
+    const startScanner = async () => {
       try {
-        const url = new URL(decodedText);
-        // Extract ID from /track/ID format
-        complaintId = url.pathname.split('/').pop();
-      } catch {
-        // If it's not a URL, assume it's the ID directly
-        complaintId = decodedText;
-      }
+        const html5QrCode = new Html5Qrcode('qr-scanner');
+        scannerRef.current = html5QrCode;
 
-      if (complaintId && complaintId.trim()) {
-        onScan(complaintId.trim().toUpperCase());
+        const onScanSuccess = (decodedText) => {
+          if (isCancelled) return;
+          setIsScanning(false);
+
+          let complaintId;
+          try {
+            const url = new URL(decodedText);
+            complaintId = url.pathname.split('/').pop();
+          } catch {
+            complaintId = decodedText;
+          }
+
+          if (complaintId && complaintId.trim()) {
+            onScan(complaintId.trim().toUpperCase());
+          }
+        };
+
+        const onScanFailure = () => {
+          // ignore continuous scan failures
+        };
+
+        await html5QrCode.start(
+          { facingMode: cameraFacing },
+          {
+            fps: 30,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          onScanSuccess,
+          onScanFailure
+        );
+      } catch (err) {
+        console.error('Scanner error:', err);
+        if (!isCancelled) {
+          setError(err.message || t('error_camera_access'));
+          setIsScanning(false);
+          onError?.(err);
+        }
       }
     };
 
-    const onScanFailure = () => {
-      // Continue scanning
-    };
-
-    try {
-      scanner.render(onScanSuccess, onScanFailure);
-    } catch (err) {
-      console.error('Scanner error:', err);
-      setError(err.message || t('error_camera_access'));
-      setIsScanning(false);
-      onError?.(err);
-    }
+    startScanner();
 
     return () => {
-      const currentScanner = scannerRef.current;
-      if (currentScanner && typeof currentScanner.clear === 'function') {
-        currentScanner
-          .clear()
+      isCancelled = true;
+      const current = scannerRef.current;
+      if (current) {
+        current
+          .stop()
+          .then(() => current.clear())
           .catch((err) => console.warn('Scanner cleanup error:', err));
       }
     };
-  }, [isScanning, onScan, onError, t]);
+  }, [isScanning, cameraFacing, onScan, onError, t]);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -119,19 +126,53 @@ export default function QRCodeScanner({ onScan, onClose, onError }) {
           <h2 className="text-lg font-semibold text-gray-900">
             {t('qr.scan_code', 'Scan QR Code')}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadFile(null);
+                  setIsScanning(true);
+                  setCameraFacing('environment');
+                }}
+                className={`px-2 py-1 ${
+                  cameraFacing === 'environment'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-700'
+                }`}
+              >
+                {t('qr.back_camera', 'Back')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadFile(null);
+                  setIsScanning(true);
+                  setCameraFacing('user');
+                }}
+                className={`px-2 py-1 border-l border-gray-200 ${
+                  cameraFacing === 'user'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-700'
+                }`}
+              >
+                {t('qr.front_camera', 'Front')}
+              </button>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}

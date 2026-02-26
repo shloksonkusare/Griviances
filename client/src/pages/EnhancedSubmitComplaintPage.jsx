@@ -796,7 +796,6 @@ function SubmitComplaintContent() {
           complaintId={submittedComplaintId}
           trackingUrl={`${window.location.origin}/track/${submittedComplaintId}`}
           estimatedTime={t('estimated_3_5_days', '3–5 working days')}
-          onTrackStatus={() => navigate(`/track/${submittedComplaintId}`)}
           onNewComplaint={() => {
             setSubmittedComplaintId(null);
             setImage(null); setImageBlob(null); setLocation(null);
