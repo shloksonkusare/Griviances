@@ -25,9 +25,24 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: config.nodeEnv === 'production' 
-    ? config.clientUrl 
-    : ['http://localhost:5173', 'http://localhost:3000', config.clientUrl],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    const allowed = [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      config.clientUrl,
+    ];
+    // Allow any Vercel preview/production URL for this project
+    if (
+      allowed.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.onrender.com')
+    ) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
