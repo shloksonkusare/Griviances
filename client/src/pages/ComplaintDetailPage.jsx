@@ -115,286 +115,225 @@ export default function ComplaintDetailPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                to="/admin/dashboard"
-                className="text-gray-600 hover:text-gray-900"
-              >
-                ← Back to Dashboard
-              </Link>
-            </div>
-            <button
-              onClick={() => setShowUpdateModal(true)}
-              className="btn-primary"
-            >
-              Update Status
-            </button>
-          </div>
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <Link
+            to="/admin/dashboard"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 text-sm font-medium transition"
+          >
+            ← Back to Dashboard
+          </Link>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Info */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Complaint Header */}
-            <div className="card">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Complaint ID</p>
-                  <h1 className="text-2xl font-bold font-mono text-primary-600">
-                    {complaint.complaintId}
-                  </h1>
-                </div>
-                <div className="flex items-center gap-3">
-                  <StatusBadge status={complaint.status} size="lg" />
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    complaint.priority === 'critical' ? 'bg-red-100 text-red-700' :
-                    complaint.priority === 'high' ? 'bg-orange-100 text-orange-700' :
-                    complaint.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {complaint.priority} priority
-                  </span>
-                </div>
+      <main className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+        {/* ── Complaint Header Card ─────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {/* Top banner */}
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-primary-200 text-xs uppercase tracking-wide">Complaint ID</p>
+                <h1 className="text-2xl font-bold font-mono text-white">
+                  {complaint.complaintId}
+                </h1>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Category</p>
-                  <p className="font-medium">{complaint.category}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Submitted</p>
-                  <p className="font-medium">
-                    {new Date(complaint.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Phone Number</p>
-                  <p className="font-medium">{complaint.user?.phoneNumber || complaint.whatsappNumber || 'N/A'}</p>
-                </div>
-                {complaint.assignedTo && (
-                  <div>
-                    <p className="text-gray-500">Assigned To</p>
-                    <p className="font-medium">{complaint.assignedTo.name}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="card">
-              <h2 className="text-lg font-semibold mb-4">Description</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {complaint.description || 'No description provided'}
-              </p>
-            </div>
-
-            {/* Location */}
-            <div className="card">
-              <h2 className="text-lg font-semibold mb-4">Location</h2>
-              <p className="text-gray-700 mb-4">
-                {complaint.address?.fullAddress || complaint.location?.address || 'Address not available'}
-              </p>
-              
-              {location && (
-                <div className="h-64 rounded-lg overflow-hidden">
-                  <MapContainer
-                    center={[location.lat, location.lng]}
-                    zoom={15}
-                    style={{ height: '100%', width: '100%' }}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <Marker position={[location.lat, location.lng]}>
-                      <Popup>
-                        <div>
-                          <p className="font-medium">{complaint.complaintId}</p>
-                          <p className="text-sm text-gray-600">{complaint.location?.address}</p>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  </MapContainer>
-                </div>
-              )}
-            </div>
-
-            {/* Complaint Image */}
-            {complaint.image?.filePath && (
-              <div className="card">
-                <h2 className="text-lg font-semibold mb-4">Complaint Photo</h2>
-                <div className="rounded-lg overflow-hidden bg-gray-100">
-                  <img
-                    src={`${API_BASE}/${complaint.image.filePath.replace(/\\/g, '/')}`}
-                    alt="Complaint"
-                    className="w-full max-h-[500px] object-contain cursor-pointer"
-                    onClick={() => window.open(`${API_BASE}/${complaint.image.filePath.replace(/\\/g, '/')}`, '_blank')}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Resolution Proof Images */}
-            {complaint.resolutionProof && complaint.resolutionProof.length > 0 && (
-              <div className="card">
-                <h2 className="text-lg font-semibold mb-4">Resolution Proof ({complaint.resolutionProof.length})</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {complaint.resolutionProof.map((proof, index) => {
-                    const proofUrl = proof.url || (proof.filePath ? `${API_BASE}/${proof.filePath.replace(/\\/g, '/')}` : null);
-                    if (!proofUrl) return null;
-                    return (
-                      <a
-                        key={index}
-                        href={proofUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="aspect-square rounded-lg overflow-hidden bg-gray-100 hover:opacity-90 transition"
-                      >
-                        <img
-                          src={proofUrl}
-                          alt={`Resolution proof ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </a>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Status History */}
-            <div className="card">
-              <h2 className="text-lg font-semibold mb-4">Status History</h2>
-              <div className="space-y-4">
-                {complaint.statusHistory && complaint.statusHistory.length > 0 ? (
-                  complaint.statusHistory.map((entry, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex flex-col items-center">
-                        <div className={`w-3 h-3 rounded-full ${
-                          entry.status === 'closed' ? 'bg-green-500' :
-                          entry.status === 'rejected' ? 'bg-red-500' :
-                          entry.status === 'in_progress' ? 'bg-blue-500' :
-                          'bg-gray-400'
-                        }`} />
-                        {index < complaint.statusHistory.length - 1 && (
-                          <div className="w-0.5 h-full bg-gray-200 mt-1" />
-                        )}
-                      </div>
-                      <div className="flex-1 pb-4">
-                        <div className="flex items-center justify-between mb-1">
-                          <StatusBadge status={entry.status} size="sm" />
-                          <span className="text-xs text-gray-500">
-                            {new Date(entry.changedAt).toLocaleString()}
-                          </span>
-                        </div>
-                        {entry.changedBy && (
-                          <p className="text-sm text-gray-600">
-                            by {entry.changedBy.name || 'Admin'}
-                          </p>
-                        )}
-                        {entry.notes && (
-                          <p className="text-sm text-gray-700 mt-1">{entry.notes}</p>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-sm">No status history available</p>
-                )}
+              <div className="flex items-center gap-2">
+                <StatusBadge status={complaint.status} size="lg" />
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                  complaint.priority === 'critical' ? 'bg-red-50 text-red-700 border-red-200' :
+                  complaint.priority === 'high' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                  complaint.priority === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                  'bg-white/90 text-gray-700 border-gray-200'
+                }`}>
+                  {complaint.priority} priority
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="card">
-              <h3 className="font-semibold mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => setShowUpdateModal(true)}
-                  className="btn-secondary w-full justify-center text-sm"
-                >
-                  📝 Update Status
-                </button>
-                {complaint.whatsappNumber && (
-                  <a
-                    href={`https://wa.me/${complaint.whatsappNumber.replace('+', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary w-full justify-center text-sm"
-                  >
-                    💬 WhatsApp
-                  </a>
-                )}
-                {location && (
-                  <a
-                    href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-secondary w-full justify-center text-sm"
-                  >
-                    🗺️ Open in Maps
-                  </a>
-                )}
-              </div>
+          {/* Details grid */}
+          <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <div>
+              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Category</p>
+              <p className="font-medium text-gray-900">{complaint.category}</p>
             </div>
-
-            {/* Reporter Info */}
-            <div className="card">
-              <h3 className="font-semibold mb-4">Reporter Information</h3>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <p className="text-gray-500">Phone</p>
-                  <p className="font-medium">{complaint.user?.phoneNumber || complaint.whatsappNumber || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Preferred Language</p>
-                  <p className="font-medium capitalize">{complaint.preferredLanguage || 'English'}</p>
-                </div>
-                {complaint.metadata?.deviceInfo && (
-                  <div>
-                    <p className="text-gray-500">Device</p>
-                    <p className="font-medium text-xs">
-                      {complaint.metadata.deviceInfo.userAgent?.substring(0, 50)}...
-                    </p>
-                  </div>
-                )}
-              </div>
+            <div>
+              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Submitted</p>
+              <p className="font-medium text-gray-900">
+                {new Date(complaint.createdAt).toLocaleDateString(undefined, {
+                  year: 'numeric', month: 'short', day: 'numeric',
+                })}
+              </p>
             </div>
-
-            {/* Internal Notes */}
-            {complaint.internalNotes && (
-              <div className="card">
-                <h3 className="font-semibold mb-4">Internal Notes</h3>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {complaint.internalNotes}
-                </p>
+            <div>
+              <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Phone</p>
+              <p className="font-medium text-gray-900">{complaint.user?.phoneNumber || complaint.whatsappNumber || 'N/A'}</p>
+            </div>
+            {complaint.assignedTo ? (
+              <div>
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Assigned To</p>
+                <p className="font-medium text-gray-900">{complaint.assignedTo.name}</p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-gray-400 text-xs uppercase tracking-wide mb-1">Department</p>
+                <p className="font-medium text-gray-900">{complaint.department || 'Unassigned'}</p>
               </div>
             )}
+          </div>
+        </div>
 
-            {/* Duplicate Info */}
+        {/* ── Description ───────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Description</h2>
+          <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+            {complaint.description || 'No description provided'}
+          </p>
+        </div>
+
+        {/* ── Location + Image side-by-side on large screens ─ */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Location */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-3">Location</h2>
+            <p className="text-sm text-gray-600 mb-3">
+              {complaint.address?.fullAddress || complaint.location?.address || 'Address not available'}
+            </p>
+            {location && (
+              <div className="h-56 rounded-xl overflow-hidden border border-gray-200">
+                <MapContainer
+                  center={[location.lat, location.lng]}
+                  zoom={15}
+                  style={{ height: '100%', width: '100%' }}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  <Marker position={[location.lat, location.lng]}>
+                    <Popup>
+                      <div>
+                        <p className="font-medium">{complaint.complaintId}</p>
+                        <p className="text-sm text-gray-600">{complaint.location?.address}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                </MapContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Complaint Image */}
+          {complaint.image?.filePath ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+              <h2 className="text-base font-semibold text-gray-900 mb-3">Complaint Photo</h2>
+              <div className="rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                <img
+                  src={`${API_BASE}/${complaint.image.filePath.replace(/\\/g, '/')}`}
+                  alt="Complaint"
+                  className="w-full max-h-80 object-contain cursor-pointer hover:opacity-90 transition"
+                  onClick={() => window.open(`${API_BASE}/${complaint.image.filePath.replace(/\\/g, '/')}`, '_blank')}
+                />
+              </div>
+            </div>
+          ) : (
+            /* keep grid balanced when no image */
+            <div />
+          )}
+        </div>
+
+        {/* ── Resolution Proof Images ───────────────────────── */}
+        {complaint.resolutionProof && complaint.resolutionProof.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-base font-semibold text-gray-900 mb-3">
+              Resolution Proof ({complaint.resolutionProof.length})
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {complaint.resolutionProof.map((proof, index) => {
+                const proofUrl = proof.url || (proof.filePath ? `${API_BASE}/${proof.filePath.replace(/\\/g, '/')}` : null);
+                if (!proofUrl) return null;
+                return (
+                  <a
+                    key={index}
+                    href={proofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200 hover:opacity-90 transition"
+                  >
+                    <img
+                      src={proofUrl}
+                      alt={`Resolution proof ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Internal Notes / Duplicate Info (inline) ──────── */}
+        {(complaint.internalNotes || complaint.duplicateOf) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {complaint.internalNotes && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h2 className="text-base font-semibold text-gray-900 mb-3">Internal Notes</h2>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">{complaint.internalNotes}</p>
+              </div>
+            )}
             {complaint.duplicateOf && (
-              <div className="card bg-yellow-50 border-yellow-200">
-                <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Duplicate</h3>
+              <div className="bg-yellow-50 rounded-2xl shadow-sm border border-yellow-200 p-6">
+                <h2 className="text-base font-semibold text-yellow-800 mb-2">⚠️ Duplicate</h2>
                 <p className="text-sm text-yellow-700">
                   This is a duplicate of complaint{' '}
-                  <Link
-                    to={`/admin/complaints/${complaint.duplicateOf}`}
-                    className="font-medium underline"
-                  >
+                  <Link to={`/admin/complaints/${complaint.duplicateOf}`} className="font-medium underline">
                     {complaint.duplicateOf}
                   </Link>
                 </p>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Status History ────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Status History</h2>
+          <div className="space-y-4">
+            {complaint.statusHistory && complaint.statusHistory.length > 0 ? (
+              complaint.statusHistory.map((entry, index) => (
+                <div key={index} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-3 h-3 rounded-full ring-4 ring-white ${
+                      entry.status === 'closed' ? 'bg-green-500' :
+                      entry.status === 'rejected' ? 'bg-red-500' :
+                      entry.status === 'in_progress' ? 'bg-blue-500' :
+                      'bg-gray-400'
+                    }`} />
+                    {index < complaint.statusHistory.length - 1 && (
+                      <div className="w-0.5 flex-1 bg-gray-200 mt-1" />
+                    )}
+                  </div>
+                  <div className="flex-1 pb-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <StatusBadge status={entry.status} size="sm" />
+                      <span className="text-xs text-gray-400">
+                        {new Date(entry.changedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {entry.changedBy && (
+                      <p className="text-sm text-gray-500">by {entry.changedBy.name || 'Admin'}</p>
+                    )}
+                    {entry.notes && (
+                      <p className="text-sm text-gray-700 mt-1">{entry.notes}</p>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-sm">No status history available</p>
             )}
           </div>
         </div>

@@ -28,9 +28,11 @@ router.post(
   [
     body('name').notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 8 }).withMessage('Password min 8 chars'),
+    body('phone').notEmpty().withMessage('Phone number is required'),
+    body('designation').notEmpty().withMessage('Designation is required'),
+    body('employeeId').optional().isString(),
     body('departmentCode').notEmpty().withMessage('Department code is required'),
-    body('phone').optional(),
+    body('isActive').optional().isBoolean(),
   ],
   validate,
   officialController.createDepartmentHead
@@ -43,9 +45,11 @@ router.post(
   [
     body('name').notEmpty().withMessage('Name is required'),
     body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 8 }).withMessage('Password min 8 chars'),
+    body('phone').notEmpty().withMessage('Phone number is required'),
+    body('designation').notEmpty().withMessage('Designation is required'),
+    body('employeeId').optional().isString(),
     body('departmentCode').notEmpty().withMessage('Department code is required'),
-    body('phone').optional(),
+    body('isActive').optional().isBoolean(),
   ],
   validate,
   officialController.createOfficer

@@ -1,4 +1,5 @@
 const Department = require('../models/Department');
+const CategoryMapping = require('../models/CategoryMapping');
 const AuditLog = require('../models/AuditLog');
 
 /**
@@ -35,24 +36,77 @@ exports.getDepartmentByCode = async (req, res) => {
 
 /**
  * Create a new department (admin only)
+ * Auto-generates department code from name.
+ * Creates CategoryMapping entries for each subcategory.
  */
 exports.createDepartment = async (req, res) => {
   try {
-    const { name, code, description } = req.body;
+    const {
+      name, description,
+      subcategories,
+      priority, isActive,
+    } = req.body;
 
+    // Auto-generate code from department name
+    const code = name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+
+    // Check for duplicate department
     const existing = await Department.findOne({ $or: [{ name }, { code }] });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Department name or code already exists' });
+      return res.status(400).json({ success: false, message: 'Department name already exists' });
     }
 
-    const department = await Department.create({ name, code, description });
+    // Create the department
+    const department = await Department.create({
+      name,
+      code,
+      description: description || '',
+      supportedCategories: (subcategories || []).map(s => ({ name: s.name, sla: s.sla || '3-5 Days' })),
+      priority: priority || 'medium',
+      isActive: isActive !== undefined ? isActive : true,
+    });
+
+    // Auto-create CategoryMapping entries for each subcategory (with per-subcategory SLA)
+    const mappingsCreated = [];
+    if (subcategories && subcategories.length > 0) {
+      for (const sub of subcategories) {
+        try {
+          const mapping = await CategoryMapping.findOneAndUpdate(
+            { categoryName: sub.name },
+            {
+              categoryName: sub.name,
+              departmentId: department._id,
+              departmentName: name,
+              departmentCode: code,
+              slaDuration: sub.sla || '3-5 Days',
+              source: 'manual',
+              isActive: true,
+            },
+            { upsert: true, new: true }
+          );
+          mappingsCreated.push(mapping.categoryName);
+        } catch (_err) {
+          // Skip duplicates silently
+        }
+      }
+    }
 
     await AuditLog.log('department_created', {
       admin: req.admin._id,
-      details: { departmentId: department._id, name, code },
+      details: {
+        departmentId: department._id,
+        name,
+        code,
+        subcategories: mappingsCreated,
+      },
     });
 
-    res.status(201).json({ success: true, data: department });
+    res.status(201).json({
+      success: true,
+      data: department,
+      mappingsCreated: mappingsCreated.length,
+      message: `Department "${name}" created${mappingsCreated.length > 0 ? ` with ${mappingsCreated.length} subcategory mapping(s)` : ''}`,
+    });
   } catch (error) {
     console.error('Create department error:', error);
     res.status(500).json({ success: false, message: 'Failed to create department' });
@@ -111,6 +165,10 @@ exports.deleteDepartment = async (req, res) => {
         message: `Cannot delete: this department has ${officialCount} active official(s). Remove them first.`,
       });
     }
+
+    // Clean up associated category mappings
+    const CategoryMapping = require('../models/CategoryMapping');
+    await CategoryMapping.deleteMany({ department: department.code });
 
     await Department.findByIdAndDelete(req.params.id);
 

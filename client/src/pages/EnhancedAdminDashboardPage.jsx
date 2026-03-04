@@ -166,55 +166,6 @@ function StatCard({ icon: Icon, label, value, trend, color = 'primary', onClick 
   );
 }
 
-// Bulk Actions Bar
-function BulkActionsBar({ selectedCount, onBulkAction, onClearSelection }) {
-  const { t } = useTranslation();
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white rounded-xl shadow-2xl px-4 py-3 flex items-center gap-4 z-50"
-    >
-      <div className="flex items-center gap-2">
-        <CheckIcon className="w-5 h-5 text-primary-400" />
-        <span className="font-medium">{selectedCount} {t('selected')}</span>
-      </div>
-      
-      <div className="w-px h-6 bg-gray-700" />
-      
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => onBulkAction('assign')}
-          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition"
-        >
-          {t('assign')}
-        </button>
-        <button
-          onClick={() => onBulkAction('resolve')}
-          className="px-3 py-1.5 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-medium transition"
-        >
-          {t('resolve')}
-        </button>
-        <button
-          onClick={() => onBulkAction('reject')}
-          className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium transition"
-        >
-          {t('reject')}
-        </button>
-      </div>
-
-      <button
-        onClick={onClearSelection}
-        className="p-1.5 hover:bg-gray-800 rounded-lg transition"
-      >
-        <XMarkIcon className="w-5 h-5" />
-      </button>
-    </motion.div>
-  );
-}
-
 // Filter Panel
 function FilterPanel({ filters, onChange, onClear, categories, statuses, priorities }) {
   const { t } = useTranslation();
@@ -334,11 +285,28 @@ function ManagePanel() {
   const [loading, setLoading] = useState(true);
 
   // Department form
-  const [deptForm, setDeptForm] = useState({ name: '', code: '', description: '' });
+  const DEPT_FORM_INITIAL = {
+    name: '', description: '',
+    subcategories: [],
+    priority: 'medium', isActive: true,
+  };
+  const [deptForm, setDeptForm] = useState(DEPT_FORM_INITIAL);
   const [showDeptForm, setShowDeptForm] = useState(false);
+  const [newSubcategory, setNewSubcategory] = useState('');
+  const [newSubcategorySla, setNewSubcategorySla] = useState('3-5 Days');
+
+  const SLA_OPTIONS = [
+    'Same Day', '1 Day', '1-2 Days', '1-3 Days', '2-3 Days',
+    '2-4 Days', '2-5 Days', '3-5 Days', '3-7 Days', '7-15 Days',
+    '15-30 Days', '1 Month', '1-2 Months',
+  ];
 
   // Official form
-  const [officialForm, setOfficialForm] = useState({ name: '', email: '', password: '', departmentCode: '', phone: '', role: 'officer' });
+  const OFFICIAL_FORM_INITIAL = {
+    name: '', email: '', phone: '', designation: '',
+    employeeId: '', departmentCode: '', role: 'officer', isActive: true,
+  };
+  const [officialForm, setOfficialForm] = useState(OFFICIAL_FORM_INITIAL);
   const [showOfficialForm, setShowOfficialForm] = useState(false);
 
   const fetchData = async () => {
@@ -364,8 +332,8 @@ function ManagePanel() {
     try {
       const res = await departmentApi.create(deptForm);
       if (res.success) {
-        addToast('Department created', 'success');
-        setDeptForm({ name: '', code: '', description: '' });
+        addToast(res.message || 'Department created', 'success');
+        setDeptForm(DEPT_FORM_INITIAL);
         setShowDeptForm(false);
         fetchData();
       }
@@ -382,8 +350,8 @@ function ManagePanel() {
         : officialApi.createOfficer;
       const res = await fn(officialForm);
       if (res.success) {
-        addToast(`${officialForm.role === 'department_head' ? 'Department Head' : 'Officer'} created`, 'success');
-        setOfficialForm({ name: '', email: '', password: '', departmentCode: '', phone: '', role: 'officer' });
+        addToast(`${officialForm.role === 'department_head' ? 'Department Head' : 'Officer'} created (default password: Pass@123)`, 'success');
+        setOfficialForm(OFFICIAL_FORM_INITIAL);
         setShowOfficialForm(false);
         fetchData();
       }
@@ -393,7 +361,7 @@ function ManagePanel() {
   };
 
   const handleDeleteDepartment = async (dept) => {
-    if (!window.confirm(`Are you sure you want to remove "${dept.name}"? This will deactivate the department.`)) return;
+    if (!window.confirm(`Are you sure you want to permanently delete "${dept.name}"? This cannot be undone.`)) return;
     try {
       const res = await departmentApi.delete(dept._id);
       if (res.success) {
@@ -406,7 +374,7 @@ function ManagePanel() {
   };
 
   const handleDeleteOfficial = async (official) => {
-    if (!window.confirm(`Are you sure you want to remove "${official.name}"? This will deactivate their account.`)) return;
+    if (!window.confirm(`Are you sure you want to permanently remove "${official.name}"? Their login will be deleted.`)) return;
     try {
       const res = await officialApi.deleteOfficial(official._id);
       if (res.success) {
@@ -448,35 +416,183 @@ function ManagePanel() {
           </div>
 
           {showDeptForm && (
-            <form onSubmit={handleCreateDept} className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-              <input value={deptForm.name} onChange={e => setDeptForm({ ...deptForm, name: e.target.value })} placeholder="Name" required className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
-              <input value={deptForm.code} onChange={e => setDeptForm({ ...deptForm, code: e.target.value.toLowerCase().replace(/\s/g, '_') })} placeholder="Code (e.g. road_department)" required className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
-              <input value={deptForm.description} onChange={e => setDeptForm({ ...deptForm, description: e.target.value })} placeholder="Description" className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500" />
-              <button type="submit" className="sm:col-span-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Create</button>
+            <form onSubmit={handleCreateDept} className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200 space-y-5">
+              {/* Section: Department Info */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Department Info</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Department Name <span className="text-red-500">*</span></label>
+                    <input value={deptForm.name} onChange={e => setDeptForm({ ...deptForm, name: e.target.value })} placeholder="e.g. Road Department (PWD)" required className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                    <input value={deptForm.description} onChange={e => setDeptForm({ ...deptForm, description: e.target.value })} placeholder="Brief description" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Configuration */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Configuration</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Priority Level</label>
+                    <select value={deptForm.priority} onChange={e => setDeptForm({ ...deptForm, priority: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                    <select value={deptForm.isActive} onChange={e => setDeptForm({ ...deptForm, isActive: e.target.value === 'true' })} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Subcategories with individual SLA */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+                  Subcategories <span className="text-red-500">*</span>
+                  <span className="text-xs font-normal text-gray-400 ml-2">({deptForm.subcategories.length} added)</span>
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                  <input
+                    value={newSubcategory}
+                    onChange={e => setNewSubcategory(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const val = newSubcategory.trim();
+                        if (val && !deptForm.subcategories.some(s => s.name === val)) {
+                          setDeptForm(prev => ({ ...prev, subcategories: [...prev.subcategories, { name: val, sla: newSubcategorySla }] }));
+                          setNewSubcategory('');
+                        }
+                      }
+                    }}
+                    placeholder="Subcategory name"
+                    className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                  <select
+                    value={newSubcategorySla}
+                    onChange={e => setNewSubcategorySla(e.target.value)}
+                    className="w-full sm:w-40 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    {SLA_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const val = newSubcategory.trim();
+                      if (val && !deptForm.subcategories.some(s => s.name === val)) {
+                        setDeptForm(prev => ({ ...prev, subcategories: [...prev.subcategories, { name: val, sla: newSubcategorySla }] }));
+                        setNewSubcategory('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 transition font-medium whitespace-nowrap"
+                  >
+                    + Add
+                  </button>
+                </div>
+                {deptForm.subcategories.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {deptForm.subcategories.map((sub, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-3 py-2 bg-white border border-gray-200 rounded-lg">
+                        <span className="text-sm font-medium text-gray-700">{sub.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">SLA: {sub.sla}</span>
+                          <button
+                            type="button"
+                            onClick={() => setDeptForm(prev => ({ ...prev, subcategories: prev.subcategories.filter((_, i) => i !== idx) }))}
+                            className="text-gray-400 hover:text-red-500 transition text-lg leading-none"
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-500">Add at least one subcategory</p>
+                )}
+              </div>
+
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={deptForm.subcategories.length === 0}
+                className="w-full py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Create Department
+              </button>
             </form>
           )}
 
           {loading ? <p className="text-gray-400 text-center py-8">Loading…</p> : (
             <div className="space-y-2">
               {departments.map(d => (
-                <div key={d._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="font-semibold text-gray-900">{d.name}</p>
-                    <p className="text-xs text-gray-500 font-mono">{d.code}</p>
+                <div key={d._id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-900">{d.name}</p>
+                      <p className="text-xs text-gray-500 font-mono">{d.code}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {d.priority && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          d.priority === 'critical' ? 'bg-red-100 text-red-700' :
+                          d.priority === 'high' ? 'bg-orange-100 text-orange-700' :
+                          d.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {d.priority}
+                        </span>
+                      )}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${d.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {d.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                      {d.isActive && (
+                        <button
+                          onClick={() => handleDeleteDepartment(d)}
+                          className="text-xs px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${d.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {d.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                    {d.isActive && (
-                      <button
-                        onClick={() => handleDeleteDepartment(d)}
-                        className="text-xs px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
+                  {/* Subcategories table */}
+                  {d.supportedCategories && d.supportedCategories.length > 0 && (
+                    <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-gray-100 text-gray-600">
+                            <th className="px-3 py-1.5 text-left font-semibold w-10">#</th>
+                            <th className="px-3 py-1.5 text-left font-semibold">Sub Category</th>
+                            <th className="px-3 py-1.5 text-right font-semibold w-32">SLA Time</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {d.supportedCategories.map((cat, i) => (
+                            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                              <td className="px-3 py-1.5 text-gray-700 font-medium">{typeof cat === 'object' ? cat.name : cat}</td>
+                              <td className="px-3 py-1.5 text-right">
+                                <span className="inline-block px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full font-medium">
+                                  {typeof cat === 'object' && cat.sla ? cat.sla : '—'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               ))}
               {departments.length === 0 && <p className="text-gray-400 text-center py-4">No departments yet</p>}
@@ -496,71 +612,175 @@ function ManagePanel() {
           </div>
 
           {showOfficialForm && (
-            <form onSubmit={handleCreateOfficial} className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 p-4 bg-gray-50 rounded-xl">
-              <input value={officialForm.name} onChange={e => setOfficialForm({ ...officialForm, name: e.target.value })} placeholder="Full Name" required className="px-3 py-2 border rounded-lg" />
-              <input type="email" value={officialForm.email} onChange={e => setOfficialForm({ ...officialForm, email: e.target.value })} placeholder="Email" required className="px-3 py-2 border rounded-lg" />
-              <input type="password" value={officialForm.password} onChange={e => setOfficialForm({ ...officialForm, password: e.target.value })} placeholder="Password (min 8)" required minLength={8} className="px-3 py-2 border rounded-lg" />
-              <input value={officialForm.phone} onChange={e => setOfficialForm({ ...officialForm, phone: e.target.value })} placeholder="Phone (optional)" className="px-3 py-2 border rounded-lg" />
-              <select value={officialForm.departmentCode} onChange={e => setOfficialForm({ ...officialForm, departmentCode: e.target.value })} required className="px-3 py-2 border rounded-lg">
-                <option value="">Select Department</option>
-                {departments.map(d => <option key={d._id} value={d.code}>{d.name}</option>)}
-              </select>
-              <select value={officialForm.role} onChange={e => setOfficialForm({ ...officialForm, role: e.target.value })} className="px-3 py-2 border rounded-lg">
-                <option value="officer">Officer</option>
-                <option value="department_head">Department Head</option>
-              </select>
-              <button type="submit" className="sm:col-span-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">Create</button>
+            <form onSubmit={handleCreateOfficial} className="mb-6 p-5 bg-gray-50 rounded-xl border border-gray-200 space-y-5">
+              {/* Section: Personal Info */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Personal Information</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Full Name <span className="text-red-500">*</span></label>
+                    <input value={officialForm.name} onChange={e => setOfficialForm({ ...officialForm, name: e.target.value })} placeholder="Full Name" required className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Email <span className="text-red-500">*</span></label>
+                    <input type="email" value={officialForm.email} onChange={e => setOfficialForm({ ...officialForm, email: e.target.value })} placeholder="email@example.com" required className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                    <input value={officialForm.phone} onChange={e => setOfficialForm({ ...officialForm, phone: e.target.value.replace(/\D/g, '') })} placeholder="10-digit number" required maxLength={10} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Designation <span className="text-red-500">*</span></label>
+                    <input value={officialForm.designation} onChange={e => setOfficialForm({ ...officialForm, designation: e.target.value })} placeholder="e.g. Executive Engineer" required className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Employee ID <span className="text-gray-400">(optional)</span></label>
+                    <input value={officialForm.employeeId} onChange={e => setOfficialForm({ ...officialForm, employeeId: e.target.value })} placeholder="e.g. EMP-001" className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Assignment & Role */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Department & Role</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Select Department <span className="text-red-500">*</span></label>
+                    <select value={officialForm.departmentCode} onChange={e => setOfficialForm({ ...officialForm, departmentCode: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                      <option value="">Select Department</option>
+                      {departments.map(d => <option key={d._id} value={d.code}>{d.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Role <span className="text-red-500">*</span></label>
+                    <div className="flex gap-4 mt-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="officialRole" value="department_head" checked={officialForm.role === 'department_head'} onChange={e => setOfficialForm({ ...officialForm, role: e.target.value })} className="text-primary-600 focus:ring-primary-500" />
+                        <span className="text-sm text-gray-700">Department Head</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="officialRole" value="officer" checked={officialForm.role === 'officer'} onChange={e => setOfficialForm({ ...officialForm, role: e.target.value })} className="text-primary-600 focus:ring-primary-500" />
+                        <span className="text-sm text-gray-700">Officer</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section: Status */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Status</h3>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="officialStatus" value="true" checked={officialForm.isActive === true} onChange={() => setOfficialForm({ ...officialForm, isActive: true })} className="text-green-600 focus:ring-green-500" />
+                    <span className="text-sm text-gray-700">Active</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="officialStatus" value="false" checked={officialForm.isActive === false} onChange={() => setOfficialForm({ ...officialForm, isActive: false })} className="text-red-600 focus:ring-red-500" />
+                    <span className="text-sm text-gray-700">Inactive</span>
+                  </label>
+                </div>
+              </div>
+
+              <p className="text-xs text-amber-600">Default login password: <span className="font-mono font-bold">Pass@123</span></p>
+
+              <button type="submit" className="w-full py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">Create {officialForm.role === 'department_head' ? 'Department Head' : 'Officer'}</button>
             </form>
           )}
 
-          {loading ? <p className="text-gray-400 text-center py-8">Loading…</p> : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Name</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Email</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Role</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Department</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Status</th>
-                    <th className="px-4 py-3 text-left font-medium text-gray-600">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {officials.map(o => (
-                    <tr key={o._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-900">{o.name}</td>
-                      <td className="px-4 py-3 text-gray-600">{o.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          o.role === 'department_head' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {roleLabel[o.role] || o.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 font-mono text-xs">{o.departmentCode || o.department}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${o.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {o.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        {o.isActive && o.role !== 'super_admin' && (
-                          <button
-                            onClick={() => handleDeleteOfficial(o)}
-                            className="text-xs px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {officials.length === 0 && <p className="text-gray-400 text-center py-8">No officials yet</p>}
-            </div>
-          )}
+          {loading ? <p className="text-gray-400 text-center py-8">Loading…</p> : (() => {
+            // Group officials by department, heads first
+            const grouped = {};
+            officials.forEach(o => {
+              const deptKey = o.departmentCode || o.department || 'unassigned';
+              if (!grouped[deptKey]) grouped[deptKey] = { heads: [], officers: [] };
+              if (o.role === 'department_head') grouped[deptKey].heads.push(o);
+              else grouped[deptKey].officers.push(o);
+            });
+            const deptNames = {};
+            departments.forEach(d => { deptNames[d.code] = d.name; });
+
+            return Object.keys(grouped).length === 0 ? (
+              <p className="text-gray-400 text-center py-8">No officials yet</p>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(grouped).map(([deptCode, group]) => (
+                  <div key={deptCode} className="border border-gray-200 rounded-xl overflow-hidden">
+                    {/* Department header */}
+                    <div className="px-4 py-3 bg-gray-100 border-b border-gray-200 flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900 text-sm">{deptNames[deptCode] || deptCode}</h3>
+                        <p className="text-xs text-gray-500 font-mono">{deptCode}</p>
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium">{group.heads.length + group.officers.length} member{group.heads.length + group.officers.length !== 1 ? 's' : ''}</span>
+                    </div>
+
+                    {/* Department Head(s) */}
+                    {group.heads.map(h => (
+                      <div key={h._id} className="px-4 py-3 bg-purple-50 border-b border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-purple-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                            {h.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 text-sm">{h.name}</p>
+                            <p className="text-xs text-gray-500">{h.designation || 'Department Head'}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="hidden sm:inline text-gray-500">{h.email}</span>
+                          <span className="hidden sm:inline text-gray-400">|</span>
+                          <span className="hidden sm:inline text-gray-500">{h.phone || '—'}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">Head</span>
+                          <span className={`px-2 py-0.5 rounded-full ${h.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {h.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                          {h.isActive && (
+                            <button onClick={() => handleDeleteOfficial(h)} className="px-2 py-0.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium">Remove</button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Officers */}
+                    {group.officers.length > 0 && (
+                      <div className="divide-y divide-gray-100">
+                        {group.officers.map((o, idx) => (
+                          <div key={o._id} className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">
+                                {idx + 1}
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-800 text-sm">{o.name}</p>
+                                <p className="text-xs text-gray-500">{o.designation || 'Officer'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="hidden sm:inline text-gray-500">{o.email}</span>
+                              <span className="hidden sm:inline text-gray-400">|</span>
+                              <span className="hidden sm:inline text-gray-500">{o.phone || '—'}</span>
+                              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">Officer</span>
+                              <span className={`px-2 py-0.5 rounded-full ${o.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                {o.isActive ? 'Active' : 'Inactive'}
+                              </span>
+                              {o.isActive && (
+                                <button onClick={() => handleDeleteOfficial(o)} className="px-2 py-0.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium">Remove</button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {group.heads.length === 0 && group.officers.length === 0 && (
+                      <p className="text-gray-400 text-center py-4 text-xs">No officials assigned</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
@@ -611,7 +831,6 @@ export default function EnhancedAdminDashboardPage() {
   const [stats, setStats] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [mapComplaints, setMapComplaints] = useState([]);
-  const [selectedComplaints, setSelectedComplaints] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [view, setView] = useState('table');
   const [filters, setFilters] = useState({
@@ -725,38 +944,6 @@ export default function EnhancedAdminDashboardPage() {
       startDate: '',
       endDate: '',
     });
-  };
-
-  const handleSelectComplaint = (id) => {
-    setSelectedComplaints(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (selectedComplaints.size === complaints.length) {
-      setSelectedComplaints(new Set());
-    } else {
-      setSelectedComplaints(new Set(complaints.map(c => c._id)));
-    }
-  };
-
-  const handleBulkAction = async (action) => {
-    const ids = Array.from(selectedComplaints);
-    try {
-      // Implement bulk action API call
-      addToast(`${t('bulk_action_success')}: ${action}`, 'success');
-      setSelectedComplaints(new Set());
-      fetchComplaints();
-    } catch (error) {
-      addToast(t('bulk_action_failed'), 'error');
-    }
   };
 
   const handleLogout = () => {
@@ -900,14 +1087,6 @@ export default function EnhancedAdminDashboardPage() {
                 <Squares2X2Icon className="w-5 h-5" />
               </button>
               <button
-                onClick={() => setView('map')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                  view === 'map' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
-                }`}
-              >
-                <MapIcon className="w-5 h-5" />
-              </button>
-              <button
                 onClick={() => setView('manage')}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
                   view === 'manage' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
@@ -965,14 +1144,6 @@ export default function EnhancedAdminDashboardPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 w-12">
-                      <input
-                        type="checkbox"
-                        checked={selectedComplaints.size === complaints.length && complaints.length > 0}
-                        onChange={handleSelectAll}
-                        className="rounded border-gray-300"
-                      />
-                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Complaint ID</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{t('category')}</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
@@ -985,27 +1156,19 @@ export default function EnhancedAdminDashboardPage() {
                 <tbody className="divide-y divide-gray-200">
                   {isLoading ? (
                     <tr>
-                      <td colSpan="8" className="px-4 py-12 text-center">
+                      <td colSpan="7" className="px-4 py-12 text-center">
                         <div className="inline-block w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
                       </td>
                     </tr>
                   ) : complaints.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="px-4 py-12 text-center text-gray-500">
+                      <td colSpan="7" className="px-4 py-12 text-center text-gray-500">
                         {t('no_complaints_found')}
                       </td>
                     </tr>
                   ) : (
                     complaints.map((complaint) => (
                       <tr key={complaint._id} className="hover:bg-gray-50 transition">
-                        <td className="px-4 py-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedComplaints.has(complaint._id)}
-                            onChange={() => handleSelectComplaint(complaint._id)}
-                            className="rounded border-gray-300"
-                          />
-                        </td>
                         <td className="px-4 py-3">
                           <Link
                             to={`/admin/complaints/${complaint._id}`}
@@ -1106,90 +1269,10 @@ export default function EnhancedAdminDashboardPage() {
           </div>
         )}
 
-        {view === 'map' && (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="h-[600px] relative">
-              <MapContainer
-                center={[20.5937, 78.9629]}
-                zoom={5}
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer
-                  attribution='&copy; OpenStreetMap'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                <MapBoundsUpdater complaints={mapComplaints} />
-                
-                {mapComplaints.map((complaint) => {
-                  const lat = complaint.coordinates?.lat ?? complaint.location?.coordinates?.[1];
-                  const lng = complaint.coordinates?.lng ?? complaint.location?.coordinates?.[0];
-                  if (lat == null || lng == null) return null;
-                  const icon = markerIcons[complaint.status] || markerIcons.pending;
-                  
-                  return (
-                    <Marker key={complaint._id || complaint.id} position={[lat, lng]} icon={icon}>
-                      <Popup>
-                        <div className="min-w-[200px] p-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-mono text-primary-600 font-medium text-sm">
-                              {complaint.complaintId}
-                            </span>
-                            <StatusBadge status={complaint.status} size="sm" />
-                          </div>
-                          <p className="font-medium text-sm mb-1">
-                            {complaint.category}
-                          </p>
-                          <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                            {complaint.address || 'N/A'}
-                          </p>
-                          <Link
-                            to={`/admin/complaints/${complaint._id}`}
-                            className="text-xs text-primary-600 hover:underline font-medium"
-                          >
-                            {t('view_details')} →
-                          </Link>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
-              </MapContainer>
-
-              {/* Legend */}
-              <div className="absolute bottom-4 right-4 bg-white rounded-lg shadow-lg p-3 z-[1000]">
-                <p className="text-xs font-semibold text-gray-700 mb-2">{t('legend')}</p>
-                <div className="space-y-1 text-xs">
-                  {[
-                    { status: 'pending', color: '🟠', label: t('status.pending') },
-                    { status: 'in_progress', color: '🟡', label: t('status.in_progress') },
-                    { status: 'closed', color: '🟢', label: t('status.closed') },
-                    { status: 'rejected', color: '🔴', label: t('status.rejected') },
-                  ].map(({ status, color, label }) => (
-                    <div key={status} className="flex items-center gap-2">
-                      <span>{color}</span>
-                      <span className="text-gray-600">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* === MANAGE PANEL (Departments, Officials) === */}
         {view === 'manage' && <ManagePanel />}
       </main>
 
-      {/* Bulk Actions Bar */}
-      <AnimatePresence>
-        {selectedComplaints.size > 0 && (
-          <BulkActionsBar
-            selectedCount={selectedComplaints.size}
-            onBulkAction={handleBulkAction}
-            onClearSelection={() => setSelectedComplaints(new Set())}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 }

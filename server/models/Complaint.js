@@ -154,6 +154,17 @@ const complaintSchema = new mongoose.Schema({
     index: true,
   },
 
+  // Department snapshot (preserved even if departments are reorganised)
+  departmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+  },
+
+  departmentName: {
+    type: String,
+    trim: true,
+  },
+
   // Who assigned the officer (department_head)
   assignedBy: {
     type: mongoose.Schema.Types.ObjectId,

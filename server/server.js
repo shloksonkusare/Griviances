@@ -152,7 +152,7 @@ const startServer = async () => {
     console.log('✅ Connected to MongoDB');
 
     // Create indexes (drop conflicting indexes first)
-    const { Complaint, Admin, AuditLog, Department } = require('./models');
+    const { Complaint, Admin, AuditLog, Department, CategoryMapping } = require('./models');
     
     try {
       // Drop the old phoneNumber index if it exists with different options
@@ -165,6 +165,7 @@ const startServer = async () => {
     await Admin.createIndexes();
     await AuditLog.createIndexes();
     await Department.createIndexes();
+    await CategoryMapping.createIndexes();
     console.log('✅ Database indexes created');
 
     // Seed default departments

@@ -21,12 +21,12 @@ const generateToken = (official) => {
 // ─── ADMIN: Create department head ─────────────────────────────────
 exports.createDepartmentHead = async (req, res) => {
   try {
-    const { name, email, password, departmentCode, phone } = req.body;
+    const { name, email, phone, designation, employeeId, departmentCode, isActive } = req.body;
 
-    if (!name || !email || !password || !departmentCode) {
+    if (!name || !email || !phone || !designation || !departmentCode) {
       return res.status(400).json({
         success: false,
-        message: 'name, email, password, and departmentCode are required',
+        message: 'name, email, phone, designation, and departmentCode are required',
       });
     }
 
@@ -43,13 +43,15 @@ exports.createDepartmentHead = async (req, res) => {
     const head = await Admin.create({
       name,
       email,
-      password,
-      phone: phone || '',
+      password: 'Pass@123',
+      phone,
+      designation,
+      employeeId: employeeId || '',
       role: 'department_head',
       department: departmentCode,
       departmentCode,
       departmentRef: dept._id,
-      isActive: true,
+      isActive: isActive !== undefined ? isActive : true,
       permissions: {
         canViewComplaints: true,
         canUpdateStatus: true,
@@ -63,7 +65,7 @@ exports.createDepartmentHead = async (req, res) => {
 
     await AuditLog.log('department_head_created', {
       admin: req.admin._id,
-      details: { headId: head._id, department: departmentCode },
+      details: { headId: head._id, department: departmentCode, designation },
     });
 
     res.status(201).json({ success: true, data: head.toJSON() });
@@ -76,12 +78,12 @@ exports.createDepartmentHead = async (req, res) => {
 // ─── ADMIN: Create officer ─────────────────────────────────────────
 exports.createOfficer = async (req, res) => {
   try {
-    const { name, email, password, departmentCode, phone } = req.body;
+    const { name, email, phone, designation, employeeId, departmentCode, isActive } = req.body;
 
-    if (!name || !email || !password || !departmentCode) {
+    if (!name || !email || !phone || !designation || !departmentCode) {
       return res.status(400).json({
         success: false,
-        message: 'name, email, password, and departmentCode are required',
+        message: 'name, email, phone, designation, and departmentCode are required',
       });
     }
 
@@ -98,13 +100,15 @@ exports.createOfficer = async (req, res) => {
     const officer = await Admin.create({
       name,
       email,
-      password,
-      phone: phone || '',
+      password: 'Pass@123',
+      phone,
+      designation,
+      employeeId: employeeId || '',
       role: 'officer',
       department: departmentCode,
       departmentCode,
       departmentRef: dept._id,
-      isActive: true,
+      isActive: isActive !== undefined ? isActive : true,
       permissions: {
         canViewComplaints: true,
         canUpdateStatus: true,
@@ -118,7 +122,7 @@ exports.createOfficer = async (req, res) => {
 
     await AuditLog.log('officer_created', {
       admin: req.admin._id,
-      details: { officerId: officer._id, department: departmentCode },
+      details: { officerId: officer._id, department: departmentCode, designation },
     });
 
     res.status(201).json({ success: true, data: officer.toJSON() });
@@ -202,7 +206,7 @@ exports.getAllOfficials = async (req, res) => {
     if (req.query.role) filter.role = req.query.role;
 
     const officials = await Admin.find(filter)
-      .select('name email phone role departmentCode department isActive createdAt')
+      .select('name email phone designation employeeId role departmentCode department isActive createdAt')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: officials });

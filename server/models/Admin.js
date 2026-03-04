@@ -46,23 +46,11 @@ const adminSchema = new mongoose.Schema({
     canExportData: { type: Boolean, default: false },
   },
   
-  // Department/Area Assignment (legacy enum kept for backward compat)
+  // Department/Area Assignment (free-form — matches Department.code)
   department: {
     type: String,
-    enum: [
-      'roads',
-      'electricity',
-      'water',
-      'sanitation',
-      'general',
-      'all',
-      // New department codes
-      'road_department',
-      'sanitation_department',
-      'electricity_department',
-      'garden_department',
-      'enforcement_department',
-    ],
+    trim: true,
+    lowercase: true,
     default: 'general',
   },
 
@@ -77,6 +65,19 @@ const adminSchema = new mongoose.Schema({
     type: String,
     trim: true,
     lowercase: true,
+  },
+
+  // Designation (e.g. Executive Engineer, Sanitary Inspector)
+  designation: {
+    type: String,
+    trim: true,
+  },
+
+  // Employee ID (optional, for HR tracking)
+  employeeId: {
+    type: String,
+    trim: true,
+    default: '',
   },
   
   // Assigned area (optional, for area-based filtering)

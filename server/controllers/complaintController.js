@@ -11,7 +11,7 @@ const { initializeSLA } = require('../services/slaService');
 const { notifyNewComplaint, notifyStatusUpdate } = require('../services/socketService');
 const { classifyImage: classifyImageService } = require('../services/imageClassificationService'); // ← NEW
 const { getEstimatedResolution, calculateExpectedResolution, calculateRemainingTime } = require('../utils/resolutionTime');
-const { getDepartmentByCategory } = require('../utils/departmentMapper');
+const { getDepartmentByCategory, getDepartmentByCategoryAsync } = require('../utils/departmentMapper');
 const { getProgressPercentage, getStatusLabel, getStatusTimeline } = require('../utils/progressTracker');
 
 // ─── In-memory OTP store for tracking by mobile number ──────────────
@@ -150,6 +150,9 @@ exports.createComplaint = async (req, res) => {
       });
     }
 
+    // Route complaint to department (DB-backed CategoryMapping → fallback to hardcoded map)
+    const deptInfo = await getDepartmentByCategoryAsync(category);
+
     // Create the complaint
     const complaint = new Complaint({
       complaintId,
@@ -182,7 +185,9 @@ exports.createComplaint = async (req, res) => {
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
       estimatedResolution: getEstimatedResolution(category),
-      department: getDepartmentByCategory(category),
+      department: deptInfo.departmentCode,
+      departmentId: deptInfo.departmentId || undefined,
+      departmentName: deptInfo.departmentName || undefined,
     });
 
     // Set resolution countdown fields

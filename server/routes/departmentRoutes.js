@@ -17,9 +17,12 @@ router.post(
   authorize('super_admin', 'admin'),
   [
     body('name').notEmpty().withMessage('Department name is required'),
-    body('code').notEmpty().withMessage('Department code is required')
-      .matches(/^[a-z_]+$/).withMessage('Code must be lowercase with underscores only'),
     body('description').optional().isString(),
+    body('subcategories').optional().isArray().withMessage('Subcategories must be an array'),
+    body('subcategories.*.name').notEmpty().withMessage('Subcategory name is required').isString().trim(),
+    body('subcategories.*.sla').optional().isString().trim(),
+    body('priority').optional().isIn(['low', 'medium', 'high', 'critical']),
+    body('isActive').optional().isBoolean(),
   ],
   validate,
   departmentController.createDepartment

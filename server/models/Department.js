@@ -23,6 +23,36 @@ const departmentSchema = new mongoose.Schema({
     default: '',
   },
 
+  // Department Head snapshot (populated by migration script)
+  headName: {
+    type: String,
+    trim: true,
+  },
+
+  headEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
+  },
+
+  headPhone: {
+    type: String,
+    trim: true,
+  },
+
+  // Complaint subcategories this department handles, each with its own SLA
+  supportedCategories: [{
+    name: { type: String, trim: true, required: true },
+    sla:  { type: String, trim: true, default: '3-5 Days' },
+  }],
+
+  // Priority level
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high', 'critical'],
+    default: 'medium',
+  },
+
   isActive: {
     type: Boolean,
     default: true,
