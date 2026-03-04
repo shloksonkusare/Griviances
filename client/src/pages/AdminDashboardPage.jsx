@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuthStore, useToastStore } from '../store';
-import { adminApi } from '../services/api';
+import { adminApi, departmentApi } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 
 // Fix Leaflet default icon issue
@@ -162,6 +162,7 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchStats();
+      fetchDashDepartments();
     }
   }, [isAuthenticated, fetchStats]);
 
@@ -187,10 +188,24 @@ export default function AdminDashboardPage() {
     navigate('/official-login');
   };
 
-  const categories = [
-    'roads', 'water', 'electricity', 'sanitation', 'public_safety',
-    'environment', 'transportation', 'healthcare', 'education', 'other'
-  ];
+  const [dashDepartments, setDashDepartments] = useState([]);
+  const fetchDashDepartments = useCallback(async () => {
+    try {
+      const result = await departmentApi.getAll();
+      if (result.success) setDashDepartments(result.data);
+    } catch (err) { console.error(err); }
+  }, []);
+
+  const categories = useMemo(() => {
+    const catSet = new Set();
+    dashDepartments.forEach(dept => {
+      (dept.supportedCategories || []).forEach(sc => {
+        if (sc.name) catSet.add(sc.name);
+      });
+    });
+    ['Damaged Road Issue', 'Garbage and Trash Issue', 'Street Light Issue', 'Fallen Trees', 'Illegal Drawing on Walls', 'Other'].forEach(c => catSet.add(c));
+    return Array.from(catSet).sort();
+  }, [dashDepartments]);
 
   const statuses = [
     'pending', 'assigned', 'in_progress', 'closed', 'rejected'
@@ -323,7 +338,7 @@ export default function AdminDashboardPage() {
               >
                 <option value="">All Categories</option>
                 {categories.map(c => (
-                  <option key={c} value={c}>{t(`categories.${c}`)}</option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
 
@@ -396,7 +411,7 @@ export default function AdminDashboardPage() {
                             {complaint.complaintId}
                           </td>
                           <td className="px-4 py-3 text-sm">
-                            {t(`categories.${complaint.category}`)}
+                            {complaint.category}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
                             {complaint.description}
@@ -499,7 +514,7 @@ export default function AdminDashboardPage() {
                             {complaint.complaintId}
                           </p>
                           <p className="font-medium text-sm mb-1">
-                            {t(`categories.${complaint.category}`)}
+                            {complaint.category}
                           </p>
                           <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                             {complaint.description}

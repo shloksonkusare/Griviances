@@ -218,7 +218,7 @@ function FilterPanel({ filters, onChange, onClear, categories, statuses, priorit
               >
                 <option value="">{t('all_categories')}</option>
                 {categories.map(c => (
-                  <option key={c} value={c}>{t(`categories.${c}`)}</option>
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
 
@@ -277,7 +277,7 @@ function FilterPanel({ filters, onChange, onClear, categories, statuses, priorit
 }
 
 // ─── Manage Panel ───────────────────────────────────────────────────
-function ManagePanel() {
+function ManagePanel({ onDepartmentChange }) {
   const { addToast } = useToastStore();
   const [departments, setDepartments] = useState([]);
   const [officials, setOfficials] = useState([]);
@@ -336,6 +336,7 @@ function ManagePanel() {
         setDeptForm(DEPT_FORM_INITIAL);
         setShowDeptForm(false);
         fetchData();
+        onDepartmentChange?.();
       }
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed', 'error');
@@ -367,6 +368,7 @@ function ManagePanel() {
       if (res.success) {
         addToast('Department removed', 'success');
         fetchData();
+        onDepartmentChange?.();
       }
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed to remove department', 'error');
@@ -848,8 +850,21 @@ export default function EnhancedAdminDashboardPage() {
     totalDocs: 0,
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dashDepartments, setDashDepartments] = useState([]);
 
-  const categories = ['roads', 'water', 'electricity', 'sanitation', 'public_safety', 'environment', 'transportation', 'healthcare', 'education', 'other'];
+  // Build categories dynamically from departments' supportedCategories + AI categories
+  const categories = useMemo(() => {
+    const catSet = new Set();
+    // From departments
+    dashDepartments.forEach(dept => {
+      (dept.supportedCategories || []).forEach(sc => {
+        if (sc.name) catSet.add(sc.name);
+      });
+    });
+    // AI-predicted categories (always include these)
+    ['Damaged Road Issue', 'Garbage and Trash Issue', 'Street Light Issue', 'Fallen Trees', 'Illegal Drawing on Walls', 'Other'].forEach(c => catSet.add(c));
+    return Array.from(catSet).sort();
+  }, [dashDepartments]);
   const statuses = ['pending', 'assigned', 'in_progress', 'closed', 'rejected'];
   const priorities = ['low', 'medium', 'high', 'critical'];
 
@@ -862,6 +877,17 @@ export default function EnhancedAdminDashboardPage() {
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  }, []);
+
+  const fetchDashDepartments = useCallback(async () => {
+    try {
+      const result = await departmentApi.getAll();
+      if (result.success) {
+        setDashDepartments(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching departments for filters:', error);
     }
   }, []);
 
@@ -907,8 +933,9 @@ export default function EnhancedAdminDashboardPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchStats();
+      fetchDashDepartments();
     }
-  }, [isAuthenticated, fetchStats]);
+  }, [isAuthenticated, fetchStats, fetchDashDepartments]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -1277,7 +1304,7 @@ export default function EnhancedAdminDashboardPage() {
         )}
 
         {/* === MANAGE PANEL (Departments, Officials) === */}
-        {view === 'manage' && <ManagePanel />}
+        {view === 'manage' && <ManagePanel onDepartmentChange={fetchDashDepartments} />}
       </main>
 
     </div>
