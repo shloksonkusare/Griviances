@@ -238,7 +238,7 @@ export default function AdminDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 py-6">
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
             <div className="card p-4">
               <p className="text-2xl font-bold text-gray-900">{stats.total || 0}</p>
               <p className="text-sm text-gray-600">Total</p>
@@ -246,6 +246,10 @@ export default function AdminDashboardPage() {
             <div className="card p-4">
               <p className="text-2xl font-bold text-yellow-600">{stats.byStatus?.pending || 0}</p>
               <p className="text-sm text-gray-600">Pending</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-2xl font-bold text-indigo-600">{stats.byStatus?.assigned || 0}</p>
+              <p className="text-sm text-gray-600">Assigned</p>
             </div>
             <div className="card p-4">
               <p className="text-2xl font-bold text-blue-600">{stats.byStatus?.in_progress || 0}</p>
@@ -258,6 +262,10 @@ export default function AdminDashboardPage() {
             <div className="card p-4">
               <p className="text-2xl font-bold text-red-600">{stats.byStatus?.rejected || 0}</p>
               <p className="text-sm text-gray-600">Rejected</p>
+            </div>
+            <div className="card p-4">
+              <p className="text-2xl font-bold text-orange-600">{stats.overdueCount || 0}</p>
+              <p className="text-sm text-gray-600">Overdue</p>
             </div>
             <div className="card p-4">
               <p className="text-2xl font-bold text-primary-600">

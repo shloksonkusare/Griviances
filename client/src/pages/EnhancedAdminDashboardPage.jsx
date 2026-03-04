@@ -1010,7 +1010,7 @@ export default function EnhancedAdminDashboardPage() {
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Stats Grid */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             <StatCard
               icon={ChartBarIcon}
               label={t('total_complaints')}
@@ -1027,6 +1027,13 @@ export default function EnhancedAdminDashboardPage() {
             />
             <StatCard
               icon={UserGroupIcon}
+              label={t('assigned', 'Assigned')}
+              value={stats.byStatus?.assigned || 0}
+              color="indigo"
+              onClick={() => handleFilterChange('status', 'assigned')}
+            />
+            <StatCard
+              icon={ArrowPathIcon}
               label={t('in_progress')}
               value={stats.byStatus?.in_progress || 0}
               color="blue"
