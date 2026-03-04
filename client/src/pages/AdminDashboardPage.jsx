@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuthStore, useToastStore } from '../store';
-import { adminApi, departmentApi } from '../services/api';
+import { adminApi } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 
 // Fix Leaflet default icon issue
@@ -63,13 +63,6 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [mapComplaints, setMapComplaints] = useState([]);
-  const [filters, setFilters] = useState({
-    status: '',
-    category: '',
-    priority: '',
-    startDate: '',
-    endDate: '',
-  });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -123,7 +116,6 @@ export default function AdminDashboardPage() {
       const params = {
         page: pagination.page,
         limit: pagination.limit,
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== '')),
       };
       
       const result = await adminApi.getComplaints(params);
@@ -141,28 +133,23 @@ export default function AdminDashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.limit, filters, addToast]);
+  }, [pagination.page, pagination.limit, addToast]);
 
   // Fetch map data
   const fetchMapData = useCallback(async () => {
     try {
-      const params = {
-        ...Object.fromEntries(Object.entries(filters).filter(([_, v]) => v !== '')),
-      };
-      
-      const result = await adminApi.getMapData(params);
+      const result = await adminApi.getMapData();
       if (result.success) {
         setMapComplaints(result.data.complaints);
       }
     } catch (error) {
       console.error('Error fetching map data:', error);
     }
-  }, [filters]);
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchStats();
-      fetchDashDepartments();
     }
   }, [isAuthenticated, fetchStats]);
 
@@ -178,40 +165,10 @@ export default function AdminDashboardPage() {
     }
   }, [isAuthenticated, view, fetchMapData]);
 
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
   const handleLogout = () => {
     logout();
     navigate('/official-login');
   };
-
-  const [dashDepartments, setDashDepartments] = useState([]);
-  const fetchDashDepartments = useCallback(async () => {
-    try {
-      const result = await departmentApi.getAll();
-      if (result.success) setDashDepartments(result.data);
-    } catch (err) { console.error(err); }
-  }, []);
-
-  const categories = useMemo(() => {
-    const catSet = new Set();
-    dashDepartments.forEach(dept => {
-      (dept.supportedCategories || []).forEach(sc => {
-        if (sc.name) catSet.add(sc.name);
-      });
-    });
-    ['Damaged Road Issue', 'Garbage and Trash Issue', 'Street Light Issue', 'Fallen Trees', 'Illegal Drawing on Walls', 'Other'].forEach(c => catSet.add(c));
-    return Array.from(catSet).sort();
-  }, [dashDepartments]);
-
-  const statuses = [
-    'pending', 'assigned', 'in_progress', 'closed', 'rejected'
-  ];
-
-  const priorities = ['low', 'medium', 'high', 'critical'];
 
   if (!isAuthenticated) {
     return null;
@@ -291,84 +248,29 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* View Toggle & Filters */}
+        {/* View Toggle */}
         <div className="card mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-            {/* View Toggle */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setView('list')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  view === 'list'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                📋 List View
-              </button>
-              <button
-                onClick={() => setView('map')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                  view === 'map'
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                🗺️ Map View
-              </button>
-            </div>
-
-            {/* Filters */}
-            <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
-              <select
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-                className="text-sm"
-              >
-                <option value="">All Status</option>
-                {statuses.map(s => (
-                  <option key={s} value={s}>{t(`status.${s}`)}</option>
-                ))}
-              </select>
-
-              <select
-                value={filters.category}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="text-sm"
-              >
-                <option value="">All Categories</option>
-                {categories.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-
-              <select
-                value={filters.priority}
-                onChange={(e) => handleFilterChange('priority', e.target.value)}
-                className="text-sm"
-              >
-                <option value="">All Priority</option>
-                {priorities.map(p => (
-                  <option key={p} value={p} className="capitalize">{p}</option>
-                ))}
-              </select>
-
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                className="text-sm"
-                placeholder="Start Date"
-              />
-
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                className="text-sm"
-                placeholder="End Date"
-              />
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setView('list')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                view === 'list'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📋 List View
+            </button>
+            <button
+              onClick={() => setView('map')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                view === 'map'
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🗺️ Map View
+            </button>
           </div>
         </div>
 

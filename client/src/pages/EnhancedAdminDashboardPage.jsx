@@ -1169,17 +1169,6 @@ export default function EnhancedAdminDashboardPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <FilterPanel
-          filters={filters}
-          onChange={handleFilterChange}
-          onClear={handleClearFilters}
-          categories={categories}
-          statuses={statuses}
-          priorities={priorities}
-          departments={dashDepartments}
-        />
-
         {/* Content */}
         {view === 'table' && (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
