@@ -168,9 +168,6 @@ const startServer = async () => {
     await CategoryMapping.createIndexes();
     console.log('✅ Database indexes created');
 
-    // Seed default departments
-    await Department.seedDefaults();
-
     // Initialize Socket.IO
     initializeSocket(server);
     console.log('✅ WebSocket server initialized');
