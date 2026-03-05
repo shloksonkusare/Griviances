@@ -913,6 +913,27 @@ function SubmitComplaintContent() {
     }
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Auto-detect existing citizen session — skip OTP if already verified
+  useEffect(() => {
+    const citizenToken = localStorage.getItem('citizenToken');
+    if (citizenToken && !phoneVerified) {
+      const API = import.meta.env.VITE_API_URL || '/api';
+      fetch(`${API}/citizen/profile`, {
+        headers: { Authorization: `Bearer ${citizenToken}` },
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.data?.phoneNumber) {
+            const ph = data.data.phoneNumber.replace(/\D/g, '').slice(-10);
+            setPhoneNumber(ph);
+            setPhoneVerified(true);
+            setCurrentStep(1);
+          }
+        })
+        .catch(() => { /* token invalid — user will verify manually */ });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Form data
   const [image, setImage] = useState(null);
   const [imageBlob, setImageBlob] = useState(null);
@@ -1138,8 +1159,7 @@ function SubmitComplaintContent() {
             setSubmittedComplaintId(null);
             setImage(null); setImageBlob(null); setLocation(null);
             setAiCategory(''); setAiConfidence(null); setAiError(null);
-            setDescription(''); setCurrentStep(0);
-            setPhoneNumber(''); setPhoneVerified(false);
+            setDescription(''); setCurrentStep(1);
           }}
         />
       </div>

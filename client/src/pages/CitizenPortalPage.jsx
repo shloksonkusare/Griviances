@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
-const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const ACTIVITY_EVENTS = ['mousemove', 'click', 'keydown', 'scroll', 'touchstart'];
 
 export default function CitizenPortalPage() {
@@ -26,9 +26,13 @@ export default function CitizenPortalPage() {
   const [stats, setStats] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
 
-  // Clear any stale citizen session — always require fresh OTP login
+  // Restore citizen session from localStorage on mount
   useEffect(() => {
-    localStorage.removeItem('citizenToken');
+    const savedToken = localStorage.getItem('citizenToken');
+    if (savedToken && !token) {
+      setToken(savedToken);
+      localStorage.setItem('citizenSession', Date.now().toString());
+    }
   }, []);
 
   // ── Citizen session activity tracking & auto-logout ───────────────
