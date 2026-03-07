@@ -80,11 +80,11 @@ const CATEGORY_META = {
   "Garbage and Trash Issue":   { icon: '🗑️', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', label: 'Garbage and Trash Issue' },
   "Illegal Drawing on Walls":  { icon: '🎨', color: 'bg-pink-100 text-pink-700 border-pink-200', label: 'Illegal Drawing on Walls' },
   "Street Light Issue":        { icon: '💡', color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Street Light Issue' },
-  "Other":                     { icon: '📋', color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Other' },
+  "Photo Invalid":                     { icon: '📋', color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Other' },
 };
 
 // Fallback for unknown categories returned by AI
-const DEFAULT_CATEGORY_META = { icon: '📋', color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Other' };
+const DEFAULT_CATEGORY_META = { icon: '📋', color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Photo Invalid' };
 
 // Helper to get category info with fallback
 function getCategoryMeta(category) {
@@ -92,7 +92,7 @@ function getCategoryMeta(category) {
 }
 
 // Categories available for manual selection (excludes "Other")
-const ALL_CATEGORIES = Object.keys(CATEGORY_META).filter(cat => cat !== 'Other');
+const ALL_CATEGORIES = Object.keys(CATEGORY_META).filter(cat => cat !== 'Photo Invalid');
 
 // ─── Pencil mini-icon (avoids extra heroicons import) ─────────────────────────
 function PencilIcon() {
@@ -506,11 +506,11 @@ function AIClassificationStep({ image, isClassifying, aiResult, aiError, onRetry
               <ExclamationTriangleIcon className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-amber-900 mb-1">
-                  {t('other_category_warning_title', 'Cannot Submit - Photo Unrecognized')}
+                  {t('other_category_warning_title', 'Cannot Submit - Photo is not Valid')}
                 </h3>
                 <p className="text-sm text-amber-800 mb-3">
                   {t('other_category_warning_message', 
-                    'The AI model could not identify a specific municipal issue in this photo. Complaints in the "Other" category cannot be submitted as they cannot be routed to the appropriate department. Please upload a clearer photo showing the specific issue, or manually select the correct category if this is a valid municipal complaint.'
+                    'The AI model identified this photo as Invalid. Please upload actual photo of the issue'
                   )}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -520,19 +520,13 @@ function AIClassificationStep({ image, isClassifying, aiResult, aiError, onRetry
                   >
                     {t('go_back_upload_new', '← Go Back & Upload New Photo')}
                   </button>
-                  <button
-                    onClick={() => setShowOverride(true)}
-                    className="flex-1 py-2 px-4 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium"
-                  >
-                    {t('select_category_manually', 'Select Correct Category')}
-                  </button>
                 </div>
               </div>
             </div>
           </motion.div>
         )}
 
-        {/* Success message when manually changed from "Other" */}
+        {/* Success message when manually changed from "Other"
         {isOtherCategory && isCategoryManuallySet && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -546,7 +540,7 @@ function AIClassificationStep({ image, isClassifying, aiResult, aiError, onRetry
               </p>
             </div>
           </motion.div>
-        )}
+        )} */}
 
         {/* Manual override */}
         <div>

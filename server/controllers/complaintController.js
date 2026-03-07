@@ -33,24 +33,77 @@ setInterval(() => {
  */
 exports.classifyImage = async (req, res) => {
   try {
+    // Validate file upload
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image uploaded.' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No image uploaded.' 
+      });
     }
 
+    // Call AI classification service (with validation)
     const result = await classifyImageService(req.file.path);
 
-    // Clean up the temp file — we only needed it for classification
-    fs.unlink(req.file.path, () => {});
-
-    return res.json({
-      success:    true,
-      category:   result.category,
-      raw_label:  result.rawLabel,
-      confidence: result.confidence,
+    // Clean up the temp file - we only needed it for classification
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error('Failed to delete temp file:', err);
     });
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CASE 1: Validation Error - Image Rejected
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    if (result.validationError) {
+      console.warn('[classifyImage] Image rejected by validation:', result.message);
+      
+      return res.status(400).json({
+        success: false,
+        error: 'invalid_image',
+        message: result.message,
+        validation: result.validation
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CASE 2: Success - Image Valid & Classified
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    if (result.success) {
+      console.log(
+        `[classifyImage] ✓ Success: category="${result.category}" ` +
+        `confidence="${result.confidence}" validation_score=${result.validation?.score || 'N/A'}`
+      );
+      
+      return res.json({
+        success: true,
+        category: result.category,
+        raw_label: result.rawLabel,
+        confidence: result.confidence,
+        confidence_score: result.confidenceScore,
+        validation: result.validation
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CASE 3: Service Error - Fallback to 'Other'
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    console.error('[classifyImage] Service error:', result.message);
+    
+    return res.status(500).json({ 
+      success: false, 
+      message: result.message || 'Classification failed.',
+      category: 'Other'  // Fallback category
+    });
+
   } catch (error) {
-    console.error('classifyImage error:', error);
-    return res.status(500).json({ success: false, message: 'Classification failed.', category: 'other' });
+    console.error('[classifyImage] Exception:', error);
+    
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Classification service unavailable.', 
+      category: 'Other' 
+    });
   }
 };
 
