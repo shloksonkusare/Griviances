@@ -248,6 +248,44 @@ function PhotoUploadStep({ image, onCapture, onFileUpload, onRetake }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 2 — AI Classification
 // ─────────────────────────────────────────────────────────────────────────────
+// client/src/pages/EnhancedSubmitComplaintPage.jsx
+
+const runClassification = async () => {
+  try {
+    const result = await callClassifyAPI(imageBlob);
+    
+    setAiCategory(result.category);
+    setAiConfidence(result.confidence);
+    
+    // Show validation success
+    if (result.validation) {
+      console.log('✓ Validation passed:', result.validation.reason);
+    }
+    
+  } catch (err) {
+    if (err.response?.status === 400) {
+      // Validation failed
+      const detail = err.response.data.detail;
+      
+      setAiError(detail.message);
+      
+      // Show user-friendly message
+      Alert.alert(
+        'Invalid Image',
+        detail.message + '\n\nPlease upload a clear photo of the municipal issue.',
+        [
+          { text: 'Retake Photo', onPress: () => retakePhoto() },
+          { text: 'OK' }
+        ]
+      );
+    } else {
+      // Other errors
+      setAiError('Classification failed');
+    }
+  }
+};
+
+
 function AIClassificationStep({ image, isClassifying, aiResult, aiError, onRetry, onOverride, isOtherCategory, isCategoryManuallySet }) {
   const { t } = useTranslation();
   const [showOverride, setShowOverride] = useState(false);

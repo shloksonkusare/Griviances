@@ -1,4 +1,4 @@
-# GrievancePortal — AI Model Requirements
+# GrievancePortal — AI Model Requirements (with Validation Layer)
 # Install with:  pip install -r requirements.txt
 
 # ── Web server
@@ -10,8 +10,18 @@ python-multipart==0.0.9       # required for FastAPI File uploads
 torch>=2.2.0
 torchvision>=0.17.0
 
+# ── CLIP for validation layer
+ftfy>=6.1.0                   # text processing for CLIP
+regex>=2023.0.0               # required by CLIP
+git+https://github.com/openai/CLIP.git  # CLIP model
+
 # ── Image handling
 Pillow>=10.3.0
 
 # ── Utilities
 pydantic>=2.6.0
+
+# Installation notes:
+# 1. Install PyTorch first: pip install torch torchvision
+# 2. Then install CLIP: pip install git+https://github.com/openai/CLIP.git
+# 3. Finally install other dependencies: pip install -r requirements.txt
